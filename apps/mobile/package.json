@@ -1,0 +1,40 @@
+{
+  "name": "@think-tank/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "installConfig": {
+    "hoistingLimits": "workspaces"
+  },
+  "main": "./index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.5",
+    "@think-tank/styles": "workspace:*",
+    "@think-tank/tailwind-config": "workspace:*",
+    "@think-tank/ui": "workspace:*",
+    "expo": "^53.0.20",
+    "expo-status-bar": "~2.2.3",
+    "nativewind": "4.1.23",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.79.5",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-web": "^0.20.0",
+    "tailwind-variants": "^3.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@think-tank/types": "workspace:*",
+    "@think-tank/typescript-config": "workspace:*",
+    "@types/react": "~19.0.10",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.8.3"
+  }
+}

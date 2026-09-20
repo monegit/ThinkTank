@@ -1,0 +1,5 @@
+{
+  "extends": "@think-tank/typescript-config/desktop.json",
+  "compilerOptions": { "types": ["@think-tank/types"] },
+  "include": ["src"]
+}

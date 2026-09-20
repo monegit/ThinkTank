@@ -1,0 +1,13 @@
+{
+  "name": "@think-tank/tailwind-config",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./tailwind.config.js",
+  "exports": {
+    ".": "./tailwind.config.js"
+  },
+  "peerDependencies": {
+    "nativewind": "4.1.23",
+    "tailwindcss": "^3.4.17"
+  }
+}

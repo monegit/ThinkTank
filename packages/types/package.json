@@ -1,0 +1,17 @@
+{
+  "name": "@think-tank/types",
+  "version": "0.0.0",
+  "private": true,
+  "types": "./nativewind-env.d.ts",
+  "exports": {
+    ".": {
+      "types": "./nativewind-env.d.ts"
+    },
+    "./nativewind-env": {
+      "types": "./nativewind-env.d.ts"
+    }
+  },
+  "peerDependencies": {
+    "nativewind": ">=4"
+  }
+}

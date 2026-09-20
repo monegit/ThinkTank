@@ -1,0 +1,5 @@
+{
+  "extends": "@think-tank/typescript-config/mobile.json",
+  "compilerOptions": { "types": ["@think-tank/types"] },
+  "include": ["App.tsx", "../../packages/ui/src"]
+}

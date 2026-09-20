@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "create-component": {
+      "source": "monegit/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/create-component/SKILL.md",
+      "computedHash": "4e2efafd1e344a11af04eecb484c7da3604cb7baafa7fd02444d26e760b9ef9a"
+    }
+  }
+}

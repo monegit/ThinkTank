@@ -1,0 +1,28 @@
+{
+  "name": "think-tank",
+  "private": true,
+  "packageManager": "yarn@4.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "resolutions": {
+    "@types/react": "19.0.10"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "desktop": "corepack yarn workspace @think-tank/desktop dev",
+    "desktop:build": "corepack yarn workspace @think-tank/desktop build",
+    "desktop:dmg": "corepack yarn workspace @think-tank/desktop build:dmg",
+    "mobile": "corepack yarn workspace @think-tank/mobile start"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.6"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

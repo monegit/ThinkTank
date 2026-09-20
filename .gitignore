@@ -1,0 +1,20 @@
+node_modules
+.yarn
+.turbo
+dist
+out
+apps/desktop/release/
+.expo
+*.log
+*** Add File: README.md
+# ThinkTank
+
+TypeScript/Yarn/Turborepo monorepo with a shared React Native Web UI package.
+
+```sh
+yarn install
+yarn desktop # starts Electron
+yarn mobile  # starts Expo
+```
+
+`@think-tank/ui` defines components with React Native primitives, which are consumed by both Expo and Electron.

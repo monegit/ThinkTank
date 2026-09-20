@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Component"
+  short_description: "Build composable React components"
+  default_prompt: "Use $create-component to design or implement this React component."
