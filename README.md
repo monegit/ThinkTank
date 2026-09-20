@@ -52,6 +52,8 @@ corepack yarn desktop
 
 ## 개발 명령어
 
+macOS 배포에 필요한 인증서, GitHub Secrets 및 공증 검증 절차는 [데스크톱 배포 안내](docs/desktop-release.md)를 참고하세요.
+
 타입 검사와 데스크톱 빌드는 다음 명령으로 실행합니다.
 
 ```sh

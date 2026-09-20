@@ -47,7 +47,7 @@ jobs:
     name: Build ${{ matrix.platform }} ${{ matrix.arch }}
     needs: verify
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 40
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -76,7 +76,6 @@ jobs:
       RELEASE_VERSION: ${{ needs.verify.outputs.version }}
       TARGET_PLATFORM: ${{ matrix.platform }}
       TARGET_ARCH: ${{ matrix.arch }}
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -87,17 +86,42 @@ jobs:
           package-manager-cache: false
       - name: Install dependencies
         run: corepack yarn install --immutable
-      - name: Build installer
+      - name: Build signed and notarized macOS installer
+        if: matrix.platform == 'mac'
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [[ "$TARGET_PLATFORM" == "mac" ]]; then
-            corepack yarn workspace @think-tank/desktop package --mac --"$TARGET_ARCH" \
-              "--config.extraMetadata.version=$RELEASE_VERSION" \
-              --config.mac.identity=- --config.mac.hardenedRuntime=false --config.mac.notarize=false
-          else
-            corepack yarn workspace @think-tank/desktop package --win --"$TARGET_ARCH" \
-              "--config.extraMetadata.version=$RELEASE_VERSION" \
-              --config.win.signExecutable=false
-          fi
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing signing credential: $name. See docs/desktop-release.md."
+              exit 1
+            fi
+          done
+          corepack yarn workspace @think-tank/desktop package --mac --"$TARGET_ARCH" \
+            "--config.extraMetadata.version=$RELEASE_VERSION" --config.forceCodeSigning=true
+      - name: Verify macOS installer contents
+        if: matrix.platform == 'mac'
+        run: |
+          mount_path="$(mktemp -d)"
+          hdiutil attach "apps/desktop/release/ThinkTank-${RELEASE_VERSION}-mac-${TARGET_ARCH}.dmg" \
+            -readonly -nobrowse -mountpoint "$mount_path"
+          trap 'hdiutil detach "$mount_path"' EXIT
+          app_path="$mount_path/ThinkTank.app"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          xcrun stapler validate "$app_path"
+          spctl --assess --type execute --verbose=2 "$app_path"
+      - name: Build Windows installer
+        if: matrix.platform == 'win'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          corepack yarn workspace @think-tank/desktop package --win --"$TARGET_ARCH" \
+            "--config.extraMetadata.version=$RELEASE_VERSION" \
+            --config.win.signExecutable=false
       - name: Upload installer
         uses: actions/upload-artifact@v7
         with:
@@ -159,7 +183,8 @@ jobs:
           | macOS Apple Silicon | ThinkTank-${RELEASE_VERSION}-mac-arm64.dmg |
           | macOS Intel | ThinkTank-${RELEASE_VERSION}-mac-x64.dmg |
 
-          Windows 설치 파일은 서명되지 않았으며, macOS 앱은 ad-hoc 서명만 적용되어 Apple 공증을 받지 않았습니다.
+          macOS 앱은 Developer ID 서명과 Apple 공증을 완료했습니다.
+          Windows 설치 파일은 서명되지 않았습니다.
           AI 기능을 사용하려면 Codex CLI 또는 Claude CLI를 별도로 설치하고 로그인해야 합니다.
 
           Commit: ${GITHUB_SHA}
