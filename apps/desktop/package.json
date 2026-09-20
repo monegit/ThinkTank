@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "env -u ELECTRON_RUN_AS_NODE electron-vite dev",
     "build": "electron-vite build",
+    "package": "electron-vite build && electron-builder --publish never",
     "build:dmg": "electron-vite build && electron-builder --mac dmg --publish never",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit"
@@ -16,16 +17,21 @@
   "build": {
     "appId": "com.thinktank.desktop",
     "productName": "ThinkTank",
+    "beforeBuild": "./scripts/before-build.cjs",
     "directories": {
       "output": "release"
     },
     "files": [
-      "out/**/*"
+      "out/**/*",
+      "!node_modules/**/*"
     ],
     "mac": {
       "target": "dmg"
     },
-    "artifactName": "${productName}-${version}-${arch}.${ext}"
+    "win": {
+      "target": "nsis"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
   },
   "dependencies": {
     "@think-tank/styles": "workspace:*",

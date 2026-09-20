@@ -1,0 +1,172 @@
+name: Release desktop
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify and prepare version
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install dependencies
+        run: corepack yarn install --immutable
+      - name: Check types
+        run: corepack yarn typecheck
+      - name: Test desktop
+        run: node --test apps/desktop/tests/*.test.cjs
+      - name: Prepare release version
+        id: version
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { version } = require('./apps/desktop/package.json');
+          const baseVersion = version.split(/[+-]/)[0];
+          const releaseVersion = `${baseVersion}-main.${process.env.GITHUB_RUN_NUMBER}`;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${releaseVersion}\ntag=v${releaseVersion}\n`);
+          NODE
+
+  build:
+    name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            platform: win
+            arch: x64
+            extension: exe
+          # The fully bundled app has no native Node add-ons to cross-compile.
+          - runner: windows-2022
+            platform: win
+            arch: arm64
+            extension: exe
+          - runner: macos-15
+            platform: mac
+            arch: arm64
+            extension: dmg
+          - runner: macos-15-intel
+            platform: mac
+            arch: x64
+            extension: dmg
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+      TARGET_PLATFORM: ${{ matrix.platform }}
+      TARGET_ARCH: ${{ matrix.arch }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install dependencies
+        run: corepack yarn install --immutable
+      - name: Build installer
+        run: |
+          if [[ "$TARGET_PLATFORM" == "mac" ]]; then
+            corepack yarn workspace @think-tank/desktop package --mac --"$TARGET_ARCH" \
+              "--config.extraMetadata.version=$RELEASE_VERSION" \
+              --config.mac.identity=- --config.mac.hardenedRuntime=false --config.mac.notarize=false
+          else
+            corepack yarn workspace @think-tank/desktop package --win --"$TARGET_ARCH" \
+              "--config.extraMetadata.version=$RELEASE_VERSION" \
+              --config.win.signExecutable=false
+          fi
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
+          path: apps/desktop/release/ThinkTank-${{ env.RELEASE_VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    needs: [verify, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+      RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v8
+        with:
+          pattern: desktop-*
+          path: artifacts
+          merge-multiple: true
+      - name: Verify assets and generate checksums
+        working-directory: artifacts
+        shell: bash
+        run: |
+          for asset in \
+            "ThinkTank-${RELEASE_VERSION}-win-x64.exe" \
+            "ThinkTank-${RELEASE_VERSION}-win-arm64.exe" \
+            "ThinkTank-${RELEASE_VERSION}-mac-arm64.dmg" \
+            "ThinkTank-${RELEASE_VERSION}-mac-x64.dmg"; do
+            test -s "$asset"
+          done
+          sha256sum -- *.exe *.dmg > SHA256SUMS.txt
+      - name: Publish complete release
+        shell: bash
+        run: |
+          # A rerun reuses this run's tag. Never replace a published release.
+          if gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' > "$RUNNER_TEMP/release-is-draft" 2>/dev/null; then
+            if [[ "$(cat "$RUNNER_TEMP/release-is-draft")" == "false" ]]; then
+              echo "Release $RELEASE_TAG is already published."
+              exit 0
+            fi
+          else
+            cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          main 브랜치에서 자동으로 생성한 ThinkTank 데스크톱 빌드입니다.
+
+          | 환경 | 설치 파일 |
+          | --- | --- |
+          | Windows x64 | ThinkTank-${RELEASE_VERSION}-win-x64.exe |
+          | Windows ARM64 | ThinkTank-${RELEASE_VERSION}-win-arm64.exe |
+          | macOS Apple Silicon | ThinkTank-${RELEASE_VERSION}-mac-arm64.dmg |
+          | macOS Intel | ThinkTank-${RELEASE_VERSION}-mac-x64.dmg |
+
+          Windows 설치 파일은 서명되지 않았으며, macOS 앱은 ad-hoc 서명만 적용되어 Apple 공증을 받지 않았습니다.
+          AI 기능을 사용하려면 Codex CLI 또는 Claude CLI를 별도로 설치하고 로그인해야 합니다.
+
+          Commit: ${GITHUB_SHA}
+          EOF
+            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" \
+              --title "ThinkTank $RELEASE_VERSION" --draft --prerelease \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
+          gh release upload "$RELEASE_TAG" artifacts/*.exe artifacts/*.dmg artifacts/SHA256SUMS.txt --clobber
+          gh release edit "$RELEASE_TAG" --draft=false
