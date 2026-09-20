@@ -1,11 +1,75 @@
 # ThinkTank
 
-TypeScript, Yarn, and Turborepo monorepo with a shared React Native Web UI.
+**가볍게 시작하고, 디테일하게 아이데이션하는 도구.**
+
+ThinkTank는 떠오른 아이디어를 AI와의 대화로 구체화하고, 직접 확인할 수 있는 화면으로 만드는 도구입니다. 짧은 설명으로 시작해 결과를 확인하고, 원하는 부분을 선택해 세부 동작과 표현을 다듬을 수 있습니다.
+
+> **현재 데스크톱 앱만 사용할 수 있습니다. 모바일 앱은 개발 준비 중입니다.**
+
+## 만든 이유
+
+AI Agent로 기능을 만들고 시연할 때, 간단한 아이디어를 확인하는 데에도 많은 파일과 코드가 생성되곤 합니다. ThinkTank는 이 과정에서 발생하는 불필요한 출력 토큰을 줄이고, 아이디어를 빠르게 확인하는 데 집중할 수 있도록 만들었습니다.
+
+자체 하네스에 화면과 동작을 하나의 HTML 파일로 구성하는 지침을 담았습니다. AI는 이 지침을 바탕으로 화면을 만들고, 사용자는 미리보기와 대화를 오가며 아이디어를 발전시킵니다.
+
+## 주요 기능
+
+- **가벼운 시작**: 새 아이디어를 만들고 짧은 설명이나 대화로 시작할 수 있습니다.
+- **단일 HTML 미리보기**: 생성된 화면을 앱 안에서 바로 확인할 수 있습니다.
+- **개별 요소 수정**: 미리보기에서 버튼, 문구 등 원하는 요소를 직접 선택하고 AI에 수정 사항을 요청할 수 있습니다.
+- **문서와 대화로 구체화**: 제목과 내용을 문서로 정리하거나, 대화를 이어가며 세부 요구사항을 다듬을 수 있습니다.
+- **AI 도구 선택**: 설치된 Codex CLI 또는 Claude CLI에 연결해 로그인된 계정으로 실행합니다. 모델과 추론 수준도 선택할 수 있습니다.
+- **로컬 폴더 관리**: 아이디어별 작업 폴더를 만들고 다시 열거나 이름을 변경할 수 있습니다.
+
+## 데스크톱 시작하기
+
+### 준비 사항
+
+- Node.js 20 이상
+- Corepack을 통한 Yarn 4 사용 환경
+- Codex CLI 또는 Claude CLI 설치 및 터미널 로그인
+
+### 설치 및 실행
+
+저장소 루트에서 다음 명령을 실행합니다.
 
 ```sh
 corepack yarn install
-corepack yarn desktop # starts Electron
-corepack yarn mobile  # starts Expo
+corepack yarn desktop
 ```
 
-`@think-tank/ui` defines NativeWind `className`-based React Native components shared by Expo and Electron. The desktop Vite renderer maps `react-native` to `react-native-web`.
+### 첫 아이디어 만들기
+
+1. 사이드바의 톱니바퀴 버튼을 눌러 사용할 CLI를 선택합니다.
+2. **폴더 선택**을 눌러 아이디어를 저장할 작업 폴더를 지정합니다.
+3. **생성** 버튼을 눌러 새 아이디어를 만듭니다.
+4. 대화창에 원하는 내용을 입력하거나, 문서 버튼에서 제목과 내용을 작성한 뒤 **적용**합니다.
+5. 생성된 화면을 확인하고, 요소 선택 버튼으로 수정할 부분을 지정해 AI에 요청합니다.
+
+대화 입력 영역에서 모델을 선택하고 뇌 모양 아이콘으로 추론 수준을 조절할 수 있습니다. 양쪽 사이드바는 너비를 조절하거나 접어 미리보기 공간을 넓힐 수 있습니다.
+
+작업 결과는 선택한 로컬 폴더에 저장됩니다. 생성된 화면은 `index.html`에서, 문서에 작성해 적용한 프롬프트는 해당 아이디어의 `README.md`에서 확인할 수 있습니다.
+
+## 개발 명령어
+
+타입 검사와 데스크톱 빌드는 다음 명령으로 실행합니다.
+
+```sh
+corepack yarn typecheck
+corepack yarn desktop:build
+```
+
+## 프로젝트 구성
+
+이 저장소는 Yarn 4와 Turborepo를 사용하는 모노레포입니다.
+
+| 경로 | 역할 |
+| --- | --- |
+| `apps/desktop` | Electron 기반 ThinkTank 데스크톱 앱 |
+| `apps/mobile` | 모바일 앱 개발 준비 중 — 현재 사용 불가 |
+| `packages/ui` | React Native와 NativeWind를 사용하는 공유 UI |
+| `packages/styles` | 공유 스타일 진입점 |
+| `packages/tailwind-config` | 공유 Tailwind 설정 |
+| `packages/typescript-config` | 공유 TypeScript 설정 |
+
+모바일 디렉터리는 향후 개발을 위한 초기 구성입니다. 현재 사용 흐름과 실행 안내는 데스크톱 앱을 기준으로 합니다.
